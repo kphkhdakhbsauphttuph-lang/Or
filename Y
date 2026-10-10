@@ -1,0 +1,372 @@
+-- ==========================================
+-- สคริปต์: คัฟเค้กv1 (Steal an Egg) 🐼🐻‍❄️ [Mobile Version]
+-- แปลภาษาไทยและพัฒนา UI โดย: byคัฟเค้ก
+-- ไอดีรูปภาพ: 137288232808293
+-- ==========================================
+
+local CoreGui = game:GetService("CoreGui")
+local StarterGui = game:GetService("StarterGui")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local GuiService = gethui and gethui() or CoreGui
+
+-- 🐼🐻‍❄️ ไอดีรูปภาพของคุณ
+local YOUR_IMAGE_ID = "rbxassetid://137288232808293" 
+
+-- 🛠️ ฟังก์ชันลากย้ายและแตะเปิด/ปิด สำหรับหน้าจอมือถือ
+local function makeTouchDraggableAndToggle(btnFrame, toggleTarget)
+    local dragging = false
+    local dragStart, startPos
+    local hasMoved = false
+
+    btnFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            hasMoved = false
+            dragStart = input.Position
+            startPos = btnFrame.Position
+        end
+    end)
+
+    btnFrame.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+            local delta = input.Position - dragStart
+            if delta.Magnitude > 6 then
+                hasMoved = true
+                btnFrame.Position = UDim2.new(
+                    startPos.X.Scale, startPos.X.Offset + delta.X,
+                    startPos.Y.Scale, startPos.Y.Offset + delta.Y
+                )
+            end
+        end
+    end)
+
+    btnFrame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+            if not hasMoved and toggleTarget then
+                toggleTarget.Visible = not toggleTarget.Visible
+            end
+        end
+    end)
+end
+
+-- 🖼️ 1. สร้าง UI ปุ่มลอยและแถบหัวข้อ (ธีมสีดำ)
+task.spawn(function()
+    pcall(function()
+        local guiName = "CupcakeV1_Mobile_UI"
+        if GuiService:FindFirstChild(guiName) then
+            GuiService[guiName]:Destroy()
+        end
+
+        local screenGui = Instance.new("ScreenGui")
+        screenGui.Name = guiName
+        screenGui.ResetOnSpawn = false
+        screenGui.Parent = GuiService
+
+        -- 🔲 แถบแสดงชื่อสคริปต์ (Main Frame) สีดำ
+        local mainFrame = Instance.new("Frame")
+        mainFrame.Name = "MainFrame"
+        mainFrame.Size = UDim2.new(0, 190, 0, 50)
+        mainFrame.Position = UDim2.new(0.5, -95, 0, 15)
+        mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        mainFrame.BackgroundTransparency = 0.2
+        mainFrame.BorderSizePixel = 0
+        mainFrame.Visible = true
+        mainFrame.Parent = screenGui
+
+        local frameCorner = Instance.new("UICorner")
+        frameCorner.CornerRadius = UDim.new(0, 12)
+        frameCorner.Parent = mainFrame
+
+        local frameStroke = Instance.new("UIStroke")
+        frameStroke.Color = Color3.fromRGB(50, 50, 50)
+        frameStroke.Thickness = 1.5
+        frameStroke.Parent = mainFrame
+
+        -- ใส่รูปภาพ 🐼🐻‍❄️
+        local imageLabel = Instance.new("ImageLabel")
+        imageLabel.Name = "BearImage"
+        imageLabel.Size = UDim2.new(0, 36, 0, 36)
+        imageLabel.Position = UDim2.new(0, 8, 0.5, -18)
+        imageLabel.BackgroundTransparency = 1
+        imageLabel.Image = YOUR_IMAGE_ID
+        imageLabel.Parent = mainFrame
+
+        local imgCorner = Instance.new("UICorner")
+        imgCorner.CornerRadius = UDim.new(1, 0)
+        imgCorner.Parent = imageLabel
+
+        -- ข้อความชื่อ "คัฟเค้กv1 🐼🐻‍❄️"
+        local titleLabel = Instance.new("TextLabel")
+        titleLabel.Name = "TitleText"
+        titleLabel.Size = UDim2.new(1, -50, 1, 0)
+        titleLabel.Position = UDim2.new(0, 48, 0, 0)
+        titleLabel.BackgroundTransparency = 1
+        titleLabel.Text = "คัฟเค้กv1 🐼🐻‍❄️\n<แตะปุ่มลอยเพื่อ ปิด/เปิด>"
+        titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        titleLabel.TextSize = 12
+        titleLabel.Font = Enum.Font.SourceSansBold
+        titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+        titleLabel.Parent = mainFrame
+
+        -- 🔘 ปุ่มลอยวงกลมรูปหมีบนจอมือถือ
+        local toggleBtn = Instance.new("ImageLabel")
+        toggleBtn.Name = "MobileToggleBtn"
+        toggleBtn.Size = UDim2.new(0, 52, 0, 52)
+        toggleBtn.Position = UDim2.new(1, -65, 0.3, 0)
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+        toggleBtn.Image = YOUR_IMAGE_ID
+        toggleBtn.Active = true
+        toggleBtn.Parent = screenGui
+
+        local toggleCorner = Instance.new("UICorner")
+        toggleCorner.CornerRadius = UDim.new(1, 0)
+        toggleCorner.Parent = toggleBtn
+
+        local toggleStroke = Instance.new("UIStroke")
+        toggleStroke.Color = Color3.fromRGB(0, 255, 150)
+        toggleStroke.Thickness = 2
+        toggleStroke.Parent = toggleBtn
+
+        -- ติดตั้งระบบลากและแตะเปิด/ปิด
+        makeTouchDraggableAndToggle(toggleBtn, mainFrame)
+    end)
+end)
+
+-- 🚀 2. โหลดสคริปต์หลัก
+task.spawn(function()
+    local success, err = pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/tienkhanh1/spicy/main/Chilli.lua"))()
+    end)
+    if not success then
+        warn("❌ เกิดข้อผิดพลาดในการโหลดสคริปต์หลัก:", err)
+    end
+end)
+
+-- ⚙️ 3. คลังคำศัพท์แปลภาษา (Dictionary)
+local dict = {
+    ["farm"] = "🚜 ฟาร์ม", ["player"] = "🏃 ตัวละคร", ["server"] = "🌐 เซิร์ฟเวอร์",
+    ["misc"] = "⚙️ อื่นๆ (Misc)", ["discord"] = "💬 ดิสคอร์ด", ["quick & keys"] = "⚡ คีย์ลัด",
+    ["settings"] = "⚙️ ตั้งค่า", ["config"] = "📁 คอนฟิก", ["search"] = "ค้นหา",
+    ["filter features..."] = "ค้นหาเมนู...", ["load config"] = "โหลดคอนฟิก",
+    ["save config"] = "บันทึกคอนฟิก", ["import / export"] = "นำเข้า / ส่งออก",
+    ["export config"] = "ส่งออกคอนฟิก", ["import config text"] = "วางข้อความคอนฟิก",
+    ["create new config"] = "สร้างคอนฟิกใหม่", ["delete config"] = "ลบคอนฟิก",
+    ["auto save config"] = "ออโต้เซฟคอนฟิก", ["auto load config"] = "ออโต้โหลดคอนฟิก",
+    ["performance"] = "ประสิทธิภาพ", ["fps cap"] = "จำกัด FPS", 
+    ["hide other players' pets"] = "ซ่อนสัตว์ผู้เล่นอื่น",
+    ["disable 3d rendering"] = "ปิดภาพ 3D (จอดำ)", ["disable 3d render"] = "ปิดการแสดงผลภาพ 3D",
+    ["optimizer"] = "ตัวปรับให้ลื่น (Optimizer)", ["strip shadows, textures and effects for the highest fps"] = "ลบเงา พื้นผิว และเอฟเฟกต์เพื่อให้ได้ FPS สูงสุด",
+    ["fps and ping"] = "แสดง FPS และ Ping", ["fps and ping size"] = "ขนาด FPS และ Ping",
+    ["utility"] = "อรรถประโยชน์", ["anti afk"] = "กันหลุด (Anti AFK)", 
+    ["server hop mode"] = "โหมดย้ายเซิร์ฟเวอร์", ["most players"] = "คนเยอะสุด", 
+    ["random"] = "สุ่ม", ["least players"] = "คนน้อยสุด", ["server hop"] = "ย้ายเซิร์ฟเวอร์", 
+    ["rejoin server"] = "เข้าเซิร์ฟเดิมซ้ำ", ["movement"] = "การเคลื่อนที่", 
+    ["speed boost"] = "เพิ่มความเร็ววิ่ง", ["infinite jump"] = "กระโดดรัวๆ (Infinite Jump)", 
+    ["noclip"] = "ทะลุกำแพง (Noclip)", ["instant pickup"] = "เก็บของทันที", 
+    ["esp"] = "มองทะลุ (ESP)", ["esp eggs"] = "มองทะลุไข่", ["auto shop"] = "ออโต้ร้านค้า", 
+    ["auto buy food"] = "ออโต้ซื้ออาหาร", ["auto buy radars"] = "ออโต้ซื้อเรดาร์", 
+    ["auto progress"] = "ออโต้ความคืบหน้า", ["auto rebirth"] = "ออโต้จุติ (Rebirth)", 
+    ["auto claim index reward"] = "ออโต้รับรางวัลสมุดสะสม", ["auto upgrade luck"] = "ออโต้อัปเกรดโชค", 
+    ["farm status"] = "สถานะการฟาร์ม", ["idle"] = "ว่างงาน (Idle)", ["auto collect eggs"] = "ออโต้เก็บไข่",
+    ["auto volcano dip"] = "ออโต้ชุบภูเขาไฟ", ["auto plant eggs"] = "ออโต้วางไข่", 
+    ["auto hatch eggs"] = "ออโต้ฟักไข่", ["auto place best pets"] = "ออโต้วางตัวที่เก่งสุด", 
+    ["swap weaker pets"] = "สลับตัวอ่อนออก", ["auto feed pets"] = "ออโต้ให้อาหารสัตว์",
+    ["egg finder"] = "ค้นหาไข่ (Egg Finder)", ["auto progression"] = "ออโต้ความคืบหน้า",
+    ["hit aura"] = "ตีออร่า (Hit Aura)", ["chase settings"] = "ตั้งค่าโหมดไล่ล่า",
+    ["invisibility"] = "ล่องหน (Invisibility)", ["anti ragdoll"] = "กันล้ม (Anti Ragdoll)", 
+    ["anti trap"] = "กันกับดัก (Anti Trap)", ["instant prompts"] = "กดปุ่มโต้ตอบทันที",
+    ["stand"] = "ยืนอยู่กับที่ (Stand)", ["chase"] = "ไล่ล่า (Chase)", ["circle"] = "เดินวนรอบ (Circle)",
+    ["patrol"] = "ลาดตระเวน (Patrol)", ["rarest"] = "หายากที่สุดก่อน (Rarest)", ["nearest"] = "ใกล้ที่สุดก่อน (Nearest)",
+    ["radiant butterfly"] = "ผีเสื้อเรเดียนต์ (Radiant)", ["amethyst butterfly"] = "ผีเสื้ออเมทิสต์ (Amethyst)",
+    ["sapphire butterfly"] = "ผีเสื้อแซฟไฟร์ (Sapphire)", ["emerald butterfly"] = "ผีเสื้อมรกต (Emerald)",
+    ["auto hop"] = "ออโต้ย้ายเซิร์ฟเวอร์", ["hop mode"] = "โหมดย้ายเซิร์ฟเวอร์", ["steal then hop"] = "ขโมยก่อนแล้วค่อยย้าย",
+    ["rarity to wait for"] = "ระดับไข่ที่จะรอ", ["min rarity"] = "ระดับขั้นต่ำ", ["farm hud"] = "แสดงหน้าต่างฟาร์ม (Farm HUD)",
+    ["auto buy trail"] = "ออโต้ซื้อเส้นทางวิ่ง (Trail)", ["auto upgrade base"] = "ออโต้อัปเกรดฐาน",
+    ["auto upgrade treadmill"] = "ออโต้อัปเกรดลู่วิ่ง", ["auto claim"] = "ออโต้รับรางวัล", ["auto claim index"] = "ออโต้รับรางวัลสมุดสะสม",
+    ["hit tween speed"] = "ความเร็วพุ่งตี (Tween)", ["hit max speed"] = "ความเร็วสูงสุดตอนตี", ["hit lead"] = "กะระยะล่วงหน้า (Hit Lead)",
+    ["hit sweep"] = "ระยะกวาดตี (Hit Sweep)", ["auto hit nearest player"] = "ออโต้ตีคนใกล้สุด", ["auto hit egg holders"] = "ออโต้ตีคนถือไข่",
+    ["auto hit specific player"] = "ออโต้ตีระบุตัวคน", ["hit player"] = "ระบุชื่อผู้เล่นที่จะตี", ["esp egg size"] = "ขนาด ESP ไข่",
+    ["esp guards"] = "มองทะลุยาม (ESP Guards)", ["esp guard size"] = "ขนาด ESP ยาม", ["esp lost parts"] = "มองทะลุชิ้นส่วนเควส",
+    ["esp players"] = "มองทะลุผู้เล่น (ESP Players)", ["esp player info"] = "ข้อมูลผู้เล่น", ["esp player size"] = "ขนาดข้อความผู้เล่น",
+    ["esp fixed size"] = "ขนาดคงที่ (Fixed Size)", ["esp own base eggs"] = "มองทะลุไข่ในฐานตัวเอง", ["esp min rarity"] = "ระดับความหายากขั้นต่ำที่จะมองทะลุ",
+    ["esp show info"] = "ข้อมูลที่จะแสดง", ["min esp value"] = "มูลค่าขั้นต่ำที่จะมองทะลุ", ["auto unfavorite equipped"] = "ออโต้ปลดล็อกตัวที่ใส่ (ถ้าไม่ตรงกฎ)",
+    ["favorite equipped now"] = "ล็อกหัวใจตัวที่ใส่เดี๋ยวนี้", ["unfavorite equipped now"] = "ปลดล็อกตัวที่ใส่เดี๋ยวนี้",
+    ["task priority"] = "ลำดับการทำงาน (Task Priority)", ["steal filter eggs"] = "ขโมยไข่ตามเงื่อนไข", ["min favorite value"] = "มูลค่าขั้นต่ำที่จะล็อก",
+    ["always favorite species"] = "ล็อกหัวใจสัตว์ชนิดนี้เสมอ", ["auto favorite equipped"] = "ออโต้ล็อกหัวใจตัวที่ใส่",
+    ["steal priority"] = "ลำดับความสำคัญขโมย", ["tween speed"] = "ความเร็วการบิน (Tween)", ["carry speed"] = "ความเร็วตอนถือไข่",
+    ["anti guard panel"] = "ซ่อนพาเนล Anti Guard", ["target areas"] = "พื้นที่เป้าหมาย", ["min steal value"] = "มูลค่าขั้นต่ำที่จะขโมย",
+    ["target specific eggs"] = "เป้าหมายเฉพาะไข่", ["steal missing lab eggs"] = "ขโมยไข่แล็บที่ยังไม่มี", ["steal missing index eggs"] = "ขโมยไข่สมุดสะสมที่ยังไม่มี",
+    ["auto wisp"] = "ออโต้ Wisp", ["auto banjo cricket"] = "ออโต้ Banjo Cricket", ["instant steal"] = "ขโมยไข่ทันที (วาร์ปกลับ)",
+    ["instant steal steps"] = "จำนวนสเต็ปขโมยทันที", ["essence target eggs"] = "เป้าหมายไข่ใช้ Essence", ["essence priority"] = "ลำดับความสำคัญ Essence",
+    ["essence skip enchanted eggs"] = "ข้ามไข่ที่ติด Enchanted", ["smart trade for essence"] = "เทรดหา Essence แบบฉลาด",
+    ["auto craft essence"] = "ออโต้คราฟต์ Essence", ["auto use enchanted essence"] = "ออโต้ใช้ Enchanted Essence",
+    ["essence min rarity"] = "ระดับต่ำสุดที่จะใช้ Essence", ["essence min value"] = "มูลค่าต่ำสุดที่จะใช้ Essence",
+    ["catch mode"] = "โหมดการจับ", ["catch priority"] = "ลำดับความสำคัญการจับ", ["catch butterflies"] = "จับผีเสื้อ",
+    ["auto trade up"] = "ออโต้เทรดอัป", ["trade up tiers"] = "ระดับการเทรดอัป", ["mutation target eggs"] = "เป้าหมายไข่กลายพันธุ์",
+    ["auto buy scrambled"] = "ออโต้ซื้อ Scrambled", ["auto butterfly bloom"] = "ออโต้งอกผีเสื้อเบ่งบาน", ["auto use scrambled"] = "ออโต้ใช้ Scrambled",
+    ["mutation min rarity"] = "ระดับไข่กลายพันธุ์ขั้นต่ำ", ["min mutation value"] = "มูลค่าขั้นต่ำการกลายพันธุ์", ["mutation priority"] = "ลำดับความสำคัญกลายพันธุ์",
+    ["keep hopping for"] = "ระยะเวลาย้ายเซิร์ฟต่อเนื่อง", ["auto claim mastery"] = "ออโต้รับรางวัล Mastery", ["lab banners"] = "ป้ายแบนเนอร์แล็บ",
+    ["auto lab trade-in"] = "ออโต้แลกของในแล็บ", ["auto reroll lab recipe"] = "ออโต้สุ่มสูตรแล็บใหม่", ["auto place lab reward eggs"] = "ออโต้วางไข่รางวัลจากแล็บ",
+    ["auto buy scramble shop"] = "ออโต้ซื้อของร้าน Scramble", ["scramble shop items"] = "ไอเทมที่จะซื้อในร้าน", ["keep samples"] = "สำรอง Samples ไว้",
+    ["auto favorite pet"] = "ออโต้ล็อกหัวใจสัตว์เลี้ยง", ["favorite pets now"] = "ล็อกหัวใจสัตว์เลี้ยงเดี๋ยวนี้", ["favorite rule"] = "กฎการล็อกหัวใจ",
+    ["match all"] = "ตรงทุกเงื่อนไข", ["favorite min rarity"] = "ระดับหายากขั้นต่ำที่จะล็อก", ["favorite mutations"] = "สายพันธุ์ที่จะล็อกหัวใจ",
+    ["fuse priority mode"] = "ลำดับความสำคัญการผสม", ["lowest rarity first"] = "ระดับต่ำสุดก่อน", ["highest rarity first"] = "ระดับสูงสุดก่อน",
+    ["pets to use"] = "สัตว์ที่จะนำมาผสม", ["lowest to highest"] = "จากต่ำไปสูง", ["max rarity to fuse"] = "ระดับหายากสูงสุดที่จะผสม",
+    ["specific species to fuse"] = "สายพันธุ์เฉพาะที่จะผสม", ["skip mutated pets"] = "ข้ามสัตว์กลายพันธุ์", ["eject incomplete slots"] = "นำตัวที่ไม่ครบเซ็ตออก",
+    ["keep lab pets"] = "เก็บสัตว์ห้องแล็บไว้", ["sell lab eggs now"] = "ขายไข่แล็บเดี๋ยวนี้", ["sell lab egg rule"] = "กฎการขายไข่แล็บ",
+    ["lab egg max rarity"] = "ระดับหายากสูงสุดของไข่แล็บ", ["lab egg sell value"] = "มูลค่าการขายไข่แล็บ", ["keep mutated lab eggs"] = "เก็บไข่แล็บกลายพันธุ์ไว้",
+    ["egg max rarity"] = "ระดับหายากสูงสุดของไข่", ["egg sell value"] = "มูลค่าการขายไข่", ["keep mutated eggs"] = "เก็บไข่กลายพันธุ์ไว้",
+    ["blacklist sell eggs"] = "ไข่ที่ห้ามขาย (Blacklist)", ["blacklist sell pets"] = "สัตว์ที่ห้ามขาย (Blacklist)", ["auto sell egg"] = "ออโต้ขายไข่",
+    ["sell eggs now"] = "ขายไข่ในกระเป๋าเดี๋ยวนี้", ["sell egg rule"] = "กฎการขายไข่", ["sell pets now"] = "ขายสัตว์เลี้ยงเดี๋ยวนี้",
+    ["sell pet rule"] = "กฎการขายสัตว์เลี้ยง", ["pet max rarity"] = "ระดับหายากสูงสุดของสัตว์เลี้ยง", ["pet sell value"] = "มูลค่าการขายสัตว์เลี้ยง",
+    ["keep mutated pets"] = "เก็บสัตว์กลายพันธุ์ไว้", ["auto equip best"] = "ออโต้สวมใส่ตัวที่ดีที่สุด", ["auto sell pet"] = "ออโต้ขายสัตว์เลี้ยง",
+    ["stay on treadmill"] = "อยู่บนลู่วิ่งตลอดเวลา", ["auto hatch"] = "ออโต้ฟักไข่", ["hatch min rarity"] = "ระดับขั้นต่ำที่จะฟัก",
+    ["min hatch value"] = "มูลค่าขั้นต่ำที่จะฟัก", ["hatch specific eggs"] = "ฟักเฉพาะไข่ที่กำหนด", ["place egg rule"] = "กฎการวางไข่",
+    ["place egg order"] = "ลำดับการวางไข่", ["place rarities"] = "ระดับที่จะวางไข่", ["place specific eggs"] = "วางเฉพาะไข่ที่กำหนด",
+    ["min place value"] = "มูลค่าขั้นต่ำที่จะวาง", ["dr scramble lab & mech"] = "ห้องแล็บ Dr Scramble & หุ่นรบ", ["auto mech boss"] = "ออโต้ตีบอสหุ่นรบ",
+    ["mech tween speed"] = "ความเร็วบินไปตีหุ่นรบ", ["main weapon hold"] = "หน่วงเวลาอาวุธหลัก", ["scrambler hold"] = "หน่วงเวลา Scrambler",
+    ["swap two weapons"] = "สลับอาวุธสองชิ้น", ["boss server hop"] = "ย้ายเซิร์ฟเวอร์ตีบอส", ["butterfly bloom"] = "ผีเสื้อเบ่งบาน (Butterfly Bloom)",
+    ["wisp companion"] = "สัตว์เลี้ยงวิญญาณ (Wisp)", ["auto steal"] = "ออโต้ขโมยไข่", ["auto place egg"] = "ออโต้วางไข่",
+    ["auto treadmill"] = "ออโต้วิ่งลู่วิ่ง", ["auto hatch & equip"] = "ออโต้ฟักและสวมใส่", ["auto sell"] = "ออโต้ขายไข่ / สัตว์",
+    ["auto sell lab egg"] = "ออโต้ขายไข่แล็บ", ["auto fuse machine"] = "ออโต้ผสมสัตว์ (Fuse Machine)", ["priority"] = "ลำดับการทำงาน (Priority)",
+    ["character"] = "ตัวละคร (Character)", ["combat"] = "การต่อสู้ (Combat)", ["discord webhook"] = "ดิสคอร์ดเว็บฮุก",
+    ["egg predictor"] = "พยากรณ์ไข่ (Egg Predictor)", ["lab predictor"] = "พยากรณ์ห้องแล็บ (Lab Predictor)", ["fuse predictor"] = "พยากรณ์การผสม (Fuse Predictor)"
+}
+
+-- ⚙ 4. ระบบติดตาม UI
+local trackedUI = {}
+
+local function trackElement(obj)
+    if not (obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox")) then return end
+    if obj:GetAttribute("Cupcake_Tracked") then return end
+    
+    obj:SetAttribute("Cupcake_Tracked", true)
+    table.insert(trackedUI, obj)
+
+    if obj:IsA("TextBox") then
+        obj:GetPropertyChangedSignal("PlaceholderText"):Connect(function()
+            local pt = obj.PlaceholderText
+            if pt and pt ~= "" then
+                local clean = pt:gsub("<[^>]+>", ""):match("^%s*(.-)%s*$"):lower()
+                if dict[clean] then
+                    obj.PlaceholderText = dict[clean]
+                end
+            end
+        end)
+    end
+end
+
+local function scanRoots()
+    local roots = {GuiService, CoreGui}
+    if LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui") then
+        table.insert(roots, LocalPlayer.PlayerGui)
+    end
+    
+    for _, root in ipairs(roots) do
+        for _, child in ipairs(root:GetDescendants()) do
+            trackElement(child)
+        end
+        root.DescendantAdded:Connect(trackElement)
+    end
+end
+scanRoots()
+
+-- ⚙️ 5. ฟังก์ชันแปลภาษา
+local function fastTranslate(obj)
+    local t = obj.Text
+    if not t or t == "" then return end
+    if obj:GetAttribute("Translating") then return end
+
+    local newT = t
+    local changed = false
+
+    -- [ระบบดักจับ Dropdown และเมนูย่อย]
+    if t:find("^%s*>[^%w]*") then
+        local base = t:gsub("^%s*>[^%w]*", ""):gsub("<[^>]+>", ""):match("^%s*(.-)%s*$"):lower()
+        
+        if base:find("dr scramble") then newT = "> ห้องแล็บ Dr Scramble & หุ่นรบ"; changed = true
+        elseif base:find("butterfly bloom") then newT = "> ผีเสื้อเบ่งบาน (Butterfly Bloom)"; changed = true
+        elseif base:find("wisp companion") then newT = "> สัตว์เลี้ยงวิญญาณ (Wisp)"; changed = true
+        elseif base:find("auto steal") then newT = "> ออโต้ขโมยไข่"; changed = true
+        elseif base:find("auto place egg") then newT = "> ออโต้วางไข่"; changed = true
+        elseif base:find("auto treadmill") then newT = "> ออโต้วิ่งลู่วิ่ง"; changed = true
+        elseif base:find("auto hatch") then newT = "> ออโต้ฟักและสวมใส่"; changed = true
+        elseif base:find("auto sell lab egg") then newT = "> ออโต้ขายไข่แล็บ"; changed = true
+        elseif base:find("auto sell") then newT = "> ออโต้ขายไข่ / สัตว์"; changed = true
+        elseif base:find("auto fuse") then newT = "> ออโต้ผสมสัตว์ (Fuse Machine)"; changed = true
+        elseif base:find("auto favorite") then newT = "> ออโต้ล็อกหัวใจ"; changed = true
+        elseif base:find("priority") then newT = "> ลำดับการทำงาน (Priority)"; changed = true
+        elseif base:find("character") then newT = "> ตัวละคร (Character)"; changed = true
+        elseif base:find("combat") then newT = "> การต่อสู้ (Combat)"; changed = true
+        elseif base:find("esp") then newT = "> มองทะลุ (ESP)"; changed = true
+        elseif base:find("egg finder") then newT = "> ค้นหาไข่ (Egg Finder)"; changed = true
+        elseif base:find("auto progression") then newT = "> ออโต้ความคืบหน้า"; changed = true
+        elseif base:find("discord webhook") then newT = "> ดิสคอร์ดเว็บฮุก"; changed = true
+        elseif base:find("egg predictor") then newT = "> พยากรณ์ไข่ (Egg Predictor)"; changed = true
+        elseif base:find("lab predictor") then newT = "> พยากรณ์ห้องแล็บ (Lab Predictor)"; changed = true
+        elseif base:find("fuse predictor") then newT = "> พยากรณ์การผสม (Fuse Predictor)"; changed = true
+        end
+    
+    -- [เปลี่ยนชื่อสคริปต์ Chilli Hub เป็น คัฟเค้กv1 🐼🐻‍❄️]
+    elseif (t == "Chilli Hub" or t:find("Chilli Hub")) and not t:find("คัฟเค้กv1") then 
+        newT = "คัฟเค้กv1 🐼🐻‍❄️ (byคัฟเค้ก)"
+        obj.TextColor3 = Color3.fromRGB(255, 255, 255)
+        changed = true
+
+    -- [จัดการป้ายสถานะ]
+    elseif t == "Collect" then newT = "เก็บ"; changed = true
+    elseif t == "Sort: Luck" then newT = "เรียง: โชค"; changed = true
+    elseif t == "Auto: OFF" then newT = "ออโต้: ปิด"; changed = true
+    elseif t == "Auto: ON" then newT = "ออโต้: เปิด"; changed = true
+    elseif t == "Players 7/7" then newT = "ผู้เล่น 7/7"; changed = true
+    elseif t == "Favorite" then newT = "ล็อกหัวใจ"; changed = true
+    elseif t == "Sell" then newT = "ขาย"; changed = true
+    elseif t == "Add" then newT = "เพิ่ม"; changed = true
+    elseif t == "Reset" then newT = "รีเซ็ต"; changed = true
+    elseif t == "Unfavorite" then newT = "ปลดล็อก"; changed = true
+    
+    -- [ค้นหาจาก Dictionary]
+    else
+        local clean = t:gsub("<[^>]+>", ""):match("^%s*(.-)%s*$")
+        if clean then
+            local lower = clean:lower()
+            if dict[lower] then
+                newT = dict[lower]
+                changed = true
+            end
+        end
+    end
+
+    if changed then
+        obj:SetAttribute("Translating", true)
+        obj.Text = newT
+        obj:SetAttribute("Translating", nil)
+    end
+end
+
+-- ⚙️ 6. ระบบ Anti-Flicker
+local RenderEvent = RunService.RenderStepped
+if not RenderEvent then RenderEvent = RunService.Heartbeat end
+
+RenderEvent:Connect(function()
+    for i = #trackedUI, 1, -1 do
+        local obj = trackedUI[i]
+        if obj and obj.Parent then
+            fastTranslate(obj)
+        else
+            table.remove(trackedUI, i)
+        end
+    end
+end)
+
+-- 🔔 ป๊อปอัพแจ้งเตือนบนมือถือ
+StarterGui:SetCore("SendNotification", {
+    Title = "🐼🐻‍❄️ คัฟเค้กv1 (มือถือ)",
+    Text = "แตะที่ปุ่มวงกลมรูปหมีเพื่อ เปิด/ปิด UI!",
+    Icon = YOUR_IMAGE_ID,
+    Duration = 5
+})
